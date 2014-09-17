@@ -52,12 +52,10 @@
 
 - (void)refreshPosts {
     _lastPostID = nil;
-    @synchronized(_posts) {
-        _endOfContent = NO;
-        _refreshing = YES;
-        [RAConnectionHandler cancelAllRequests];
-        [self getPostsAfterLast:nil];
-    }
+    _endOfContent = NO;
+    _refreshing = YES;
+    [RAConnectionHandler cancelAllRequests];
+    [self getPostsAfterLast:nil];
 }
 
 - (void)getPostsAfterLast:(NSString *)lastPostID {
@@ -66,7 +64,13 @@
     }
     _querying = YES;
     if (!_refreshing) {
-        [self startIndicatorView];
+        if (!_indicatorView) {
+            _indicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+            _indicatorView.frame = CGRectMake(0, 0, 300, 50);
+            _indicatorView.color = [UIColor purpleColor];
+            self.tableView.tableFooterView = _indicatorView;
+        }
+        [_indicatorView startAnimating];
     }
     NSString *query = @".json";
     if (lastPostID) {
@@ -82,21 +86,11 @@
                                       if (error) {
                                           [self _handleConnectionError:error];
                                       } else {
-                                          dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void) {
+                                          dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
                                               [self _loadDataFromRequest:result];
                                           });
                                       }
                                   }];
-}
-
-- (void)startIndicatorView {
-    if (!_indicatorView) {
-        _indicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
-        _indicatorView.frame = CGRectMake(0, 0, 300, 50);
-        _indicatorView.color = [UIColor purpleColor];
-    }
-    self.tableView.tableFooterView = _indicatorView;
-    [_indicatorView startAnimating];
 }
 
 - (void)_loadDataFromRequest:(NSDictionary *)result {
@@ -115,6 +109,7 @@
     _lastPostID = data[@"after"];
     if ((id)_lastPostID == [NSNull null]) {
         _endOfContent = YES;
+        _indicatorView = nil;
     }
     @synchronized(_posts) {
         if (_refreshing) {
@@ -122,7 +117,7 @@
         } else {
             _posts = [_posts arrayByAddingObjectsFromArray:newPosts];
         }
-        dispatch_async(dispatch_get_main_queue(), ^(void) {
+        dispatch_async(dispatch_get_main_queue(), ^{
             [self.tableView reloadData];
             if (_endOfContent) {
                 UIView *view = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 300, 50)];
