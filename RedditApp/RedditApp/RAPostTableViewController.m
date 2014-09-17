@@ -20,6 +20,7 @@
     BOOL _endOfContent;
     BOOL _refreshing;
     CGFloat _tableWidth;
+    UIActivityIndicatorView *_indicatorView;
 }
 
 - (id)initWithStyle:(UITableViewStyle)style
@@ -64,6 +65,9 @@
         return;
     }
     _querying = YES;
+    if (!_refreshing) {
+        [self startIndicatorView];
+    }
     NSString *query = @".json";
     if (lastPostID) {
         query = [query stringByAppendingFormat:@"?after=%@", lastPostID];
@@ -72,8 +76,8 @@
                                       data:nil
                                   callback:^(NSDictionary *result, NSError *error) {
                                       _querying = NO;
-                                      if (_refreshing) {
-                                          
+                                      if (!_refreshing) {
+                                          [_indicatorView stopAnimating];
                                       }
                                       if (error) {
                                           [self _handleConnectionError:error];
@@ -83,6 +87,16 @@
                                           });
                                       }
                                   }];
+}
+
+- (void)startIndicatorView {
+    if (!_indicatorView) {
+        _indicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+        _indicatorView.frame = CGRectMake(0, 0, 300, 50);
+        _indicatorView.color = [UIColor purpleColor];
+    }
+    self.tableView.tableFooterView = _indicatorView;
+    [_indicatorView startAnimating];
 }
 
 - (void)_loadDataFromRequest:(NSDictionary *)result {
@@ -192,7 +206,7 @@
 }
 
 - (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (indexPath.row > (_posts.count - 3)) {
+    if (indexPath.row > (_posts.count - 5)) {
         [self getPostsAfterLast:_lastPostID];
     }
 }
