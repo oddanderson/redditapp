@@ -180,7 +180,7 @@
     RAPost *post = _posts[indexPath.row];
     cell.textLabel.numberOfLines = 2;
     cell.textLabel.text = post.title;
-    cell.detailTextLabel.text = [post.score stringValue];
+    cell.detailTextLabel.text = [NSString stringWithFormat:@"Score: %d -- Comments: %d", [post.score integerValue], [post.numberOfComments integerValue]];
     if ([[NSUserDefaults standardUserDefaults] boolForKey:post.postID]) {
         cell.textLabel.textColor = cell.detailTextLabel.textColor = [UIColor lightGrayColor];
     } else {
